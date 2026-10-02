@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1E40AF">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌹</text></svg>">
+    <title>🌹 Admin — Rosa de Saron</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        admin: '#1E40AF', cobrador: '#047857',
+                        sucesso: '#10B981', perigo: '#EF4444',
+                        aviso: '#F59E0B', atrasado: '#DC2626', pix: '#7E22CE',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .aba{display:none;}.mostra{display:block;}
+        .cartao{background:white;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.1);padding:1.5rem;margin-bottom:1rem;}
+        .campo{border:1px solid #ccc;border-radius:6px;padding:10px;width:100%;margin:4px 0 12px;}
+        .btn{padding:10px 16px;border-radius:6px;font-weight:bold;cursor:pointer;border:none;}
+        .btn-admin{background:#1E40AF;color:white;}
+        .btn-verde{background:#10B981;color:white;}
+        .btn-vermelho{background:#EF4444;color:white;}
+        .btn-cinza{background:#6B7280;color:white;}
+        .btn-azul{background:#3B82F6;color:white;}
+        .login-fundo{background:linear-gradient(135deg,#1E40AF 0%,#3B82F6 100%);}
+        .status-pago{background:#D1FAE5;color:#065F46;}
+        .status-pendente{background:#FEF3C7;color:#92400E;}
+        .status-atrasado{background:#FEE2E2;color:#991B1B;}
+        .status-pix{background:#F3E8FF;color:#6B21A8;}
+        .status-aprovado{background:#D1FAE5;color:#065F46;}
+        .status-rejeitado{background:#FEE2E2;color:#991B1B;}
+        .sinc-indicador{position:fixed;top:10px;right:10px;z-index:100;}
+        .aviso-novo{animation:pulo 1s infinite alternate;}
+        @keyframes pulo{from{transform:scale(1);}to{transform:scale(1.05);}}
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<div id="indicadorSinc" class="sinc-indicador hidden">
+    <span class="bg-white px-3 py-1 rounded-full shadow text-sm flex items-center gap-2">
+        <i class="fa-solid fa-sync fa-spin text-admin"></i> Sincronizado ✓
+    </span>
+</div>
+
+<div id="telaLogin" class="login-fundo min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+        <h1 class="text-center text-3xl font-bold text-admin mb-2">🌹 ADMINISTRAÇÃO</h1>
+        <p class="text-center text-gray-500 mb-8">Acesso Exclusivo — Rosa de Saron</p>
+        <label class="block font-medium">E-mail do Admin</label>
+        <input type="email" id="inpEmail" class="campo" placeholder="admin@rosadesaron.com">
+        <label class="block font-medium">Senha</label>
+        <input type="password" id="inpSenha" class="campo" placeholder="Digite sua senha">
+        <button onclick="entrar()" class="btn btn-admin w-full text-lg mt-2">🔐 Entrar</button>
+        <p id="erroLogin" class="text-red-600 mt-3 text-center hidden">❌ Acesso negado!</p>
+        <div class="mt-4 p-3 bg-gray-100 rounded text-sm">
+            <strong>Acesso:</strong><br>📧 admin@rosadesaron.com<br>🔑 admin123
+        </div>
+    </div>
+</div>
+
+<header id="cabAdmin" class="bg-admin text-white py-4 hidden">
+    <div class="container mx-auto px-4">
+        <div class="flex justify-between items-center">
+            <h1 class="text-xl font-bold">🌹 PAINEL ADMINISTRATIVO</h1>
+            <button onclick="sair()" class="bg-white/20 px-4 py-2 rounded">
+                <i class="fa-solid fa-right-from-bracket"></i> Sair
+            </button>
+        </div>
+        <nav class="flex flex-wrap gap-2 mt-4">
+            <button onclick="mostrarAba('clientes')" class="bg-white/20 px-3 py-2 rounded">Clientes</button>
+            <button onclick="mostrarAba('cobradores')" class="bg-white/20 px-3 py-2 rounded">Cobradores</button>
+            <button onclick="mostrarAba('caixa')" class="bg-white/20 px-3 py-2 rounded">Caixa</button>
+            <button onclick="mostrarAba('gastos')" id="btnAbaGastos" class="bg-white/20 px-3 py-2 rounded">
+                Gastos <span id="qtdPendentes" class="hidden bg-red-500 text-white text-xs px-2 rounded-full ml-1">0</span>
+            </button>
+        </nav>
+    </div>
+</header>
+
+<main id="principal" class="container mx-auto px-4 py-6 hidden">
+    <section id="aba-clientes" class="aba">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">📋 Cadastro de Clientes</h2>
+            <button onclick="mostrarFormCliente()" class="btn btn-verde"><i class="fa-solid fa-plus"></i> Novo Cliente</button>
+        </div>
+        <div id="formCliente" class="cartao hidden">
+            <h3 class="font-bold mb-3">Dados do Cliente</h3>
+            <label>Nome Completo</label><input type="text" id="cNome" class="campo">
+            <label>Nº Contrato</label><input type="text" id="cContrato" class="campo">
+            <label>Endereço</label><input type="text" id="cEndereco" class="campo">
+            <label>Ponto de Referência</label><input type="text" id="cReferencia" class="campo">
+            <label>Telefone</label><input type="tel" id="cTelefone" class="campo">
+            <label>Valor da Parcela R$</label><input type="number" step="0.01" id="cValor" class="campo">
+            <label>Cobrador Responsável</label>
+            <select id="cCobrador" class="campo"><option value="">-- Selecione --</option></select>
+            <div class="flex gap-2 mt-2">
+                <button onclick="salvarCliente()" class="btn btn-admin">Salvar</button>
+                <button onclick="esconderFormCliente()" class="btn btn-cinza">Cancelar</button>
+            </div>
+        </div>
+        <div id="listaClientesBox" class="cartao">
+            <h3 class="font-bold mb-2">Lista de Clientes</h3>
+            <div id="listaClientes"></div>
+        </div>
+        <div id="fichaCliente" class="cartao hidden mt-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-admin">📄 Ficha do Cliente</h3>
+                <button onclick="fecharFicha()" class="btn btn-cinza py-2 px-3">Voltar</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div><p class="text-sm text-gray-500">Nome</p><p class="font-bold" id="fichaNome"></p></div>
+                <div><p class="text-sm text-gray-500">Contrato</p><p class="font-bold" id="fichaContrato"></p></div>
+                <div><p class="text-sm text-gray-500">Endereço</p><p id="fichaEndereco"></p></div>
+                <div><p class="text-sm text-gray-500">Referência</p><p id="fichaReferencia"></p></div>
+                <div><p class="text-sm text-gray-500">Telefone</p><p id="fichaTelefone"></p></div>
+                <div><p class="text-sm text-gray-500">Valor Parcela R$</p><p class="font-bold text-lg text-admin" id="fichaValor"></p></div>
+                <div><p class="text-sm text-gray-500">Cobrador</p><p id="fichaCobrador"></p></div>
+            </div>
+            <div class="border-t pt-4 mb-4">
+                <h4 class="font-bold mb-3">➕ Adicionar Parcela</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div><label>Data Vencimento</label><input type="date" id="novaDataVenc" class="campo"></div>
+                    <div><label>Valor R$</label><input type="number" step="0.01" id="novaValorParc" class="campo"></div>
+                    <div class="flex items-end"><button onclick="adicionarParcela()" class="btn btn-verde w-full">Adicionar</button></div>
+                </div>
+            </div>
+            <div class="border-t pt-4">
+                <h4 class="font-bold mb-3">📅 Parcelas e Pagamentos</h4>
+                <div id="listaParcelas"></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="aba-cobradores" class="aba">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">👥 Cobradores</h2>
+            <button onclick="mostrarFormCobrador()" class="btn btn-verde">+ Novo Cobrador</button>
+        </div>
+        <div id="formCobrador" class="cartao hidden">
+            <label>Nome</label><input type="text" id="cbNome" class="campo">
+            <label>E-mail de Acesso</label><input type="email" id="cbEmail" class="campo">
+            <label>Senha</label><input type="password" id="cbSenha" class="campo">
+            <div class="flex gap-2 mt-2">
+                <button onclick="salvarCobrador()" class="btn bg-cobrador text-white">Cadastrar</button>
+                <button onclick="esconderFormCobrador()" class="btn btn-cinza">Cancelar</button>
+            </div>
+        </div>
+        <div class="cartao"><h3 class="font-bold mb-2">Cadastrados</h3><div id="listaCobradores"></div></div>
+    </section>
+
+    <section id="aba-caixa" class="aba">
+        <h2 class="text-xl font-bold mb-4">💰 Fluxo de Caixa</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div class="cartao bg-green-50"><h3 class="text-green-700">Total Recebido</h3><p class="text-2xl font-bold text-green-600" id="caixaEntrada">R$ 0,00</p></div>
+            <div class="cartao bg-red-50"><h3 class="text-red-700">Total Gastos</h3><p class="text-2xl font-bold text-red-600" id="caixaSaida">R$ 0,00</p></div>
+            <div class="cartao bg-blue-50"><h3 class="text-blue-700">Saldo</h3><p class="text-2xl font-bold text-blue-600" id="caixaSaldo">R$ 0,00</p></div>
+        </div>
+        <div class="cartao"><h3 class="font-bold mb-2">Movimentações</h3><div id="listaMovimentos"></div></div>
+    </section>
+
+    <section id="aba-gastos" class="aba">
+        <h2 class="text-xl font-bold mb-4">📝 Gastos de Campo — Aprovação</h2>
+        <div class="cartao mb-6">
+            <h3 class="font-bold mb-3">➕ Registrar Gasto Próprio</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div><label>Data</label><input type="date" id="gData" class="campo"></div>
+                <div><label>Tipo</label><select id="gTipo" class="campo">
+                    <option>Abastecimento</option><option>Hospedagem</option>
+                    <option>Alimentação</option><option>Transporte</option><option>Outros</option>
+                </select></div>
+            </div>
+            <label>Descrição / Justificativa</label>
+            <input type="text" id="gDesc" class="campo" placeholder="Ex: Abastecimento rota Centro">
+            <label>Valor R$</label><input type="number" step="0.01" id="gValor" class="campo">
+            <button onclick="salvarGasto()" class="btn btn-vermelho mt-2">Registrar Saída</button>
+        </div>
+        <div class="cartao"><h3 class="font-bold mb-3">📋 Solicitações dos Cobradores</h3><div id="listaSolicitacoes"></div></div>
+    </section>
+</main>
+
+<script>
+const CHAVE_NUVEM = 'rosa_saron_v2';
+const ADMIN = { email: 'admin@rosadesaron.com', senha: 'admin123' };
+let usuario = null, clienteAtual = null;
+let dados = { cobradores:[], clientes:[], gastos:[], gastosCobradores:[], movimentos:[] };
+
+// SINCRONIZAÇÃO ENTRE APARELHOS
+function mostrarSinc() {
+    const el = document.getElementById('indicadorSinc');
+    el.classList.remove('hidden');
+    setTimeout(() => el.classList.add('hidden'), 1500);
+}
+
+function salvarDados() {
+    localStorage.setItem(CHAVE_NUVEM, JSON.stringify(dados));
+    mostrarSinc();
+    atualizarTelas();
+}
+
+function carregarDados() {
+    const s = localStorage.getItem(CHAVE_NUVEM);
+    if (s) dados = JSON.parse(s);
+    if (!dados.cobradores) dados.cobradores = [];
+    if (!dados.clientes) dados.clientes = [];
+    if (!dados.gastos) dados.gastos = [];
+    if (!dados.gastosCobradores) dados.gastosCobradores = [];
+    if (!dados.movimentos) dados.movimentos = [];
+    contarPendentes();
+}
+
+// ⚡ SINCRONIZA QUANDO O OUTRO APARELHO ALTERAR
+window.addEventListener('storage', (e) => {
+    if (e.key === CHAVE_NUVEM && e.newValue) {
+        dados = JSON.parse(e.newValue);
+        mostrarSinc();
+        atualizarTelas();
+    }
+});
+
+// 🔄 ATUALIZA AUTOMATICAMENTE A CADA 3 SEGUNDOS
+setInterval(() => {
+    const atual = localStorage.getItem(CHAVE_NUVEM);
+    if (atual && atual !== JSON.stringify(dados)) {
+        dados = JSON.parse(atual);
+        atualizarTelas();
+    }
+}, 3000);
+
+function contarPendentes() {
+    const qtd = dados.gastosCobradores.filter(g => g.status === 'pendente').length;
+    const badge = document.getElementById('qtdPendentes');
+    if (qtd > 0) { badge.textContent = qtd; badge.classList.remove('hidden'); }
+    else badge.classList.add('hidden');
+}
+
+// LOGIN
+function entrar() {
+    const email = document.getElementById('inpEmail').value.trim().toLowerCase();
+    const senha = document.getElementById('inpSenha').value;
+    if (email === ADMIN.email && senha === ADMIN.senha) {
+        usuario = { tipo: 'admin' };
+        carregarDados();
+        prosseguir();
+    } else {
+        document.getElementById('erroLogin').classList.remove('hidden');
+    }
+}
+function prosseguir() {
+    document.getElementById('telaLogin').classList.add('hidden');
+    document.getElementById('principal').classList.remove('hidden');
+    document.getElementById('cabAdmin').classList.remove('hidden');
+    mostrarAba('clientes');
+}
+function sair() {
+    usuario = null; clienteAtual = null;
+    document.getElementById('telaLogin').classList.remove('hidden');
+    document.getElementById('principal').classList.add('hidden');
+    document.getElementById('cabAdmin').classList.add('hidden');
+    document.getElementById('inpEmail').value = '';
+    document.getElementById('inpSenha').value = '';
+}
+
+// NAVEGAÇÃO
+function mostrarAba(nome) {
+    clienteAtual = null;
+    document.querySelectorAll('.aba').forEach(a => a.classList.remove('mostra'));
+    document.getElementById(`aba-${nome}`).classList.add('mostra');
+    if (nome === 'caixa') atualizarCaixa();
+    if (nome === 'gastos') {
+        document.getElementById('gData').value = new Date().toISOString().split('T')[0];
+        listarSolicitacoes();
+    }
+}
+function atualizarTelas() {
+    preencherSelectCobradores(); listarClientes(); listarCobradores(); listarSolicitacoes(); atualizarCaixa(); contarPendentes();
+}
+
+// CLIENTES
+function preencherSelectCobradores() {
+    const sel = document.getElementById('cCobrador');
+    sel.innerHTML = '<option value="">-- Selecione --</option>';
+    dados.cobradores.forEach(c => sel.innerHTML += `<option value="${c.id}">${c.nome}</option>`);
+}
+function mostrarFormCliente() {
+    document.getElementById('formCliente').classList.remove('hidden');
+    ['cNome','cContrato','cEndereco','cReferencia','cTelefone','cValor'].forEach(id=>document.getElementById(id).value='');
+    preencherSelectCobradores();
+}
+function esconderFormCliente() { document.getElementById('formCliente').classList.add('hidden'); }
+function salvarCliente() {
+    const nome = document.getElementById('cNome').value.trim();
+    if (!nome) return alert('Digite o nome!');
+    dados.clientes.push({
+        id: Date.now(), nome,
+        contrato: document.getElementById('cContrato').value.trim(),
+        endereco: document.getElementById('cEndereco').value.trim(),
+        referencia: document.getElementById('cReferencia').value.trim(),
+        telefone: document.getElementById('cTelefone').value.trim(),
+        valor: parseFloat(document.getElementById('cValor').value)||0,
+        cobradorId: document.getElementById('cCobrador').value,
+        parcelas: []
+    });
+    salvarDados(); esconderFormCliente(); alert('✅ Cliente cadastrado!');
+}
+function excluirCliente(id) {
+    if (!confirm('Excluir?')) return;
+    dados.clientes = dados.clientes.filter(c => c.id !== id);
+    salvarDados();
+}
+function listarClientes() {
+    const div = document.getElementById('listaClientes');
+    if (!dados.clientes.length) return div.innerHTML = '<p class="text-gray-500">Nenhum cliente cadastrado.</p>';
+    div.innerHTML = '<div class="space-y-2">';
+    dados.clientes.forEach(c => {
+        const cob = dados.cobradores.find(x => x.id == c.cobradorId);
+        const atraso = (c.parcelas||[]).filter(p=>!p.pago && new Date(p.dataVenc)<new Date()).length;
+        div.innerHTML += `
+        <div class="border p-3 rounded flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+            <div><strong>${c.nome}</strong> | Contrato: ${c.contrato}<br>
+            R$ ${c.valor.toFixed(2)} | ${cob?cob.nome:'Sem cobrador'}
+            ${atraso?`<span class="text-atrasado font-bold ml-2">⚠️ ${atraso} em atraso</span>`:''}</div>
+            <div class="flex gap-2">
+                <button onclick="abrirFicha(${c.id})" class="btn btn-azul text-sm py-1 px-2">📄 Ficha</button>
+                <button onclick="excluirCliente(${c.id})" class="btn btn-vermelho text-sm py-1 px-2">🗑</button>
+            </div>
+        </div>`;
+    });
+    div.innerHTML += '</div>';
+}
+function abrirFicha(id) {
+    carregarDados();
+    clienteAtual = dados.clientes.find(c=>c.id===id);
+    if (!clienteAtual) return;
+    document.getElementById('listaClientesBox').classList.add('hidden');
+    document.getElementById('fichaCliente').classList.remove('hidden');
+    document.getElementById('fichaNome').textContent = clienteAtual.nome;
+    document.getElementById('fichaContrato').textContent = clienteAtual.contrato;
+    document.getElementById('fichaEndereco').textContent = clienteAtual.endereco||'—';
+    document.getElementById('fichaReferencia').textContent = clienteAtual.referencia||'—';
+    document.getElementById('fichaTelefone').textContent = clienteAtual.telefone||'—';
+    document.getElementById('fichaValor').textContent = `R$ ${clienteAtual.valor.toFixed(2)}`;
+    const cob = dados.cobradores.find(c=>c.id==clienteAtual.cobradorId);
+    document.getElementById('fichaCobrador').textContent = cob?cob.nome:'Não atribuído';
+    document.getElementById('novaDataVenc').value = new Date().toISOString().split('T')[0];
+    renderizarParcelas();
+}
+function fecharFicha() { clienteAtual=null; document.getElementById('fichaCliente').classList.add('hidden'); document.getElementById('listaClientesBox').classList.remove('hidden'); listarClientes(); }
+function adicionarParcela() {
+    if (!clienteAtual) return;
+    const data = document.getElementById('novaDataVenc').value;
+    let valor = parseFloat(document.getElementById('novaValorParc').value) || clienteAtual.valor;
+    if (!data) return alert('Informe a data!');
+    if (!clienteAtual.parcelas) clienteAtual.parcelas = [];
+    clienteAtual.parcelas.push({id:Date.now(), dataVenc:data, valor, dataPagamento:null, pago:false, formaPagto:'', observacaoPagto:''});
+    salvarDados(); renderizarParcelas(); alert('✅ Parcela adicionada!');
+}
+function marcarComoPaga(id) {
+    carregarDados(); clienteAtual = dados.clientes.find(c=>c.id===clienteAtual.id);
+    const p = clienteAtual.parcelas.find(x=>x.id===id);
+    if (p.pago) {
+        p.pago = false; p.dataPagamento = null; p.formaPagto = ''; p.observacaoPagto = '';
+        dados.movimentos = dados.movimentos.filter(m=>!(m.descricao.includes(clienteAtual.nome) && m.valor===p.valor));
+    } else {
+        p.pago = true; p.dataPagamento = new Date().toISOString().split('T')[0];
+        dados.movimentos.push({data:p.dataPagamento, descricao:`Pagamento: ${clienteAtual.nome} - Parcela`, tipo:'entrada', valor:p.valor});
+    }
+    salvarDados(); renderizarParcelas();
+}
+function editarDataVenc(id) {
+    const nova = prompt('Nova data (AAAA-MM-DD):');
+    if (!nova) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(nova)) return alert('Formato inválido!');
+    clienteAtual.parcelas.find(p=>p.id===id).dataVenc = nova;
+    salvarDados(); renderizarParcelas();
+}
+function excluirParcela(id) {
+    if (!confirm('Excluir?')) return;
+    clienteAtual.parcelas = clienteAtual.parcelas.filter(x=>x.id!==id);
+    salvarDados(); renderizarParcelas();
+}
+function renderizarParcelas() {
+    const div = document.getElementById('listaParcelas');
+    if (!clienteAtual.parcelas?.length) return div.innerHTML = '<p class="text-gray-500">Nenhuma parcela.</p>';
+    div.innerHTML = '<div class="space-y-2">';
+    [...clienteAtual.parcelas].sort((a,b)=>new Date(b.dataVenc)-new Date(a.dataVenc)).forEach(p=>{
+        const hoje = new Date(), venc = new Date(p.dataVenc);
+        const atrasado = !p.pago && venc < hoje;
+        let st = 'Pendente', cls = 'status-pendente';
+        if (p.formaPagto === 'pix') { cls = 'status-pix'; st = '💜 Pago via PIX'; }
+        else if (p.pago) { cls = 'status-pago'; st = `✅ Pago em ${p.dataPagamento.split('-').reverse().join('/')}`; }
+        else if (atrasado) { st='⚠️ EM ATRASO'; cls='status-atrasado'; }
+        div.innerHTML += `
+        <div class="border rounded p-3">
+            <div>Venc: ${p.dataVenc.split('-').reverse().join('/')} — <strong>R$ ${p.valor.toFixed(2)}</strong>
+            <span class="ml-2 px-2 py-0.5 rounded text-xs ${cls}">${st}</span></div>
+            ${p.observacaoPagto?`<div class="bg-purple-50 p-2 rounded text-sm mt-1">📝 ${p.observacaoPagto}</div>`:''}
+            <div class="flex gap-2 mt-2">
+                ${!p.pago?`
+                <button onclick="marcarComoPaga(${p.id})" class="btn btn-verde py-1 px-2 text-xs">✓ Pago</button>
+                <button onclick="editarDataVenc(${p.id})" class="btn btn-azul py-1 px-2 text-xs">📅 Editar</button>
+                `:`
+                <button onclick="marcarComoPaga(${p.id})" class="btn btn-cinza py-1 px-2 text-xs">↩ Desmarcar</button>
+                `}
+                <button onclick="excluirParcela(${p.id})" class="btn btn-vermelho py-1 px-2 text-xs">🗑</button>
+            </div>
+        </div>`;
+    });
+    div.innerHTML += '</div>';
+}
+
+// COBRADORES
+function mostrarFormCobrador() { document.getElementById('formCobrador').classList.remove('hidden'); ['cbNome','cbEmail','cbSenha'].forEach(id=>document.getElementById(id).value=''); }
+function esconderFormCobrador() { document.getElementById('formCobrador').classList.add('hidden'); }
+function salvarCobrador() {
+    const nome = document.getElementById('cbNome').value.trim();
+    const email = document.getElementById('cbEmail').value.trim().toLowerCase();
+    const senha = document.getElementById('cbSenha').value;
+    if (!nome||!email||!senha) return alert('Preencha tudo!');
+    if (!email.includes('@')) return alert('E-mail inválido!');
+    if (email === ADMIN.email) return alert('E-mail do administrador!');
+    if (dados.cobradores.some(c=>c.email===email)) return alert('Já cadastrado!');
+    dados.cobradores.push({id:Date.now(), nome, email, senha});
+    salvarDados(); esconderFormCobrador(); alert('✅ Cobrador cadastrado!');
+}
+function excluirCobrador(id) {
+    if (!confirm('Excluir? Clientes dele ficarão sem responsável.')) return;
+    dados.cobradores = dados.cobradores.filter(c=>c.id!==id);
+    dados.clientes.forEach(c=>{if(Number(c.cobradorId)===id) c.cobradorId='';});
+    salvarDados();
+}
+function listarCobradores() {
+    const div = document.getElementById('listaCobradores');
+    if (!dados.cobradores.length) return div.innerHTML = '<p class="text-gray-500">Nenhum cobrador.</p>';
+    div.innerHTML = '<div class="space-y-2">';
+    dados.cobradores.forEach(c=>{
+        const qtd = dados.clientes.filter(x=>Number(x.cobradorId)===c.id).length;
+        div.innerHTML += `<div class="border p-3 rounded flex justify-between items-center">
+            <div><strong>${c.nome}</strong><br>Acesso: ${c.email} | ${qtd} cliente(s)</div>
+            <button onclick="excluirCobrador(${c.id})" class="btn btn-vermelho py-1 px-2">Excluir</button>
+        </div>`;
+    });
+    div.innerHTML += '</div>';
+}
+
+// GASTOS E APROVAÇÃO
+function salvarGasto() {
+    const valor = parseFloat(document.getElementById('gValor').value);
+    if (!valor || valor <= 0) return alert('Informe o valor!');
+    const data = document.getElementById('gData').value;
+    const tipo = document.getElementById('gTipo').value;
+    const desc = document.getElementById('gDesc').value.trim() || tipo;
+    dados.gastos.push({id:Date.now(), data, tipo, descricao:desc, valor});
+    dados.movimentos.push({data, descricao:`GASTO: ${tipo} - ${desc}`, tipo:'saida', valor});
+    salvarDados(); alert('✅ Gasto registrado!');
+}
+function aprovarGasto(id) {
+    const gasto = dados.gastosCobradores.find(g=>g.id===id);
+    if (!gasto) return;
+    gasto.status = 'aprovado';
+    dados.gastos.push({id:Date.now(), data:gasto.data, tipo:gasto.tipo, descricao:`[${gasto.cobradorNome}] ${gasto.tipo}`, valor:gasto.valor});
+    dados.movimentos.push({data:gasto.data, descricao:`GASTO APROVADO — ${gasto.cobradorNome}`, tipo:'saida', valor:gasto.valor});
+    salvarDados(); alert('✅ Aprovado!');
+}
+function rejeitarGasto(id) {
+    if (!confirm('Rejeitar?')) return;
+    const gasto = dados.gastosCobradores.find(g=>g.id===id);
+    if (gasto) gasto.status = 'rejeitado';
+    salvarDados(); alert('❌ Rejeitado.');
+}
+function listarSolicitacoes() {
+    const div = document.getElementById('listaSolicitacoes');
+    if (!dados.gastosCobradores.length) return div.innerHTML = '<p class="text-gray-500">Nenhuma solicitação.</p>';
+    div.innerHTML = '<div class="space-y-3">';
+    dados.gastosCobradores.slice().reverse().forEach(g => {
+        let classe = 'status-pendente', botoes = '';
+        if (g.status === 'pendente') {
+            botoes = `<div class="flex gap-2 mt-2">
+                <button onclick="aprovarGasto(${g.id})" class="btn btn-verde">✅ Aprovar</button>
+                <button onclick="rejeitarGasto(${g.id})" class="btn btn-vermelho">❌ Rejeitar</button>
+            </div>`;
+        } else if (g.status === 'aprovado') { classe = 'status-aprovado'; }
+        else if (g.status === 'rejeitado') { classe = 'status-rejeitado'; }
+        div.innerHTML += `
+        <div class="border rounded p-3 ${g.status==='pendente'?'border-yellow-400':''}">
+            <div class="flex justify-between items-start">
+                <div><p class="font-bold">${g.tipo}</p><p class="text-sm text-gray-500">${g.data.split('-').reverse().join('/')} — ${g.cobradorNome}</p></div>
+                <span class="px-2 py-1 rounded text-sm ${classe}">${g.status==='pendente'?'⏳ Pendente':g.status==='aprovado'?'✅ Aprovado':'❌ Rejeitado'}</span>
+            </div>
+            <p class="mt-2"><strong>Justificativa:</strong> ${g.descricao}</p>
+            ${g.observacao?`<p class="text-sm text-gray-600">Obs: ${g.observacao}</p>`:''}
+            <p class="font-bold text-lg text-admin mt-1">R$ ${g.valor.toFixed(2)}</p>
+            ${botoes}
+        </div>`;
+    });
+    div.innerHTML += '</div>';
+}
+
+// CAIXA
+function atualizarCaixa() {
+    let ent=0, sai=0;
+    dados.movimentos.forEach(m=>{if(m.tipo==='entrada')ent+=m.valor;else sai+=m.valor;});
+    document.getElementById('caixaEntrada').textContent = `R$ ${ent.toFixed(2)}`;
+    document.getElementById('caixaSaida').textContent = `R$ ${sai.toFixed(2)}`;
+    document.getElementById('caixaSaldo').textContent = `R$ ${(ent-sai).toFixed(2)}`;
+    const div = document.getElementById('listaMovimentos');
+    if (!dados.movimentos.length) return div.innerHTML = '<p class="text-gray-500">Sem movimentações.</p>';
+    div.innerHTML = '<div class="space-y-2">';
+    [...dados.movimentos].reverse().forEach(m=>{
+        div.innerHTML += `<div class="border-b py-2">
+            ${m.data.split('-').reverse().join('/')} — ${m.descricao} — 
+            <strong class="${m.tipo==='entrada'?'text-green-600':'text-red-600'}">
+                ${m.tipo==='entrada'?'+':'-'} R$ ${m.valor.toFixed(2)}
+            </strong>
+        </div>`;
+    });
+    div.innerHTML += '</div>';
+}
+
+carregarDados();
+</script>
+</body>
+</html>
